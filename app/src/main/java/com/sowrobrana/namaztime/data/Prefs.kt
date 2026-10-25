@@ -52,6 +52,15 @@ class Prefs(context: Context) {
         get() = sp.getInt("tasbih_target", 33)
         set(value) = sp.edit().putInt("tasbih_target", value).apply()
 
+    /** Last Quran position for the "continue reading" card (0 = none). */
+    var lastQuranSurah: Int
+        get() = sp.getInt("last_quran_surah", 0)
+        set(value) = sp.edit().putInt("last_quran_surah", value).apply()
+
+    var lastQuranAyah: Int
+        get() = sp.getInt("last_quran_ayah", 1)
+        set(value) = sp.edit().putInt("last_quran_ayah", value).apply()
+
     fun tasbihCount(dhikr: Int): Int = sp.getInt("tasbih_count_$dhikr", 0)
 
     /** The city prayer times/alarms must follow: GPS position in auto
