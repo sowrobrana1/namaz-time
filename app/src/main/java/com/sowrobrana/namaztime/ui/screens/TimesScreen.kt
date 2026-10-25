@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sowrobrana.namaztime.alarms.NotificationHelper
 import com.sowrobrana.namaztime.prayer.BD_CITIES
 import com.sowrobrana.namaztime.prayer.Hijri
 import com.sowrobrana.namaztime.ui.NamazViewModel
@@ -284,6 +285,22 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
             color = Color.Gray,
             modifier = Modifier.padding(16.dp, 0.dp, 16.dp, 4.dp),
         )
+        // Azan test: plays the alarm immediately so the user can verify
+        // it works without waiting for the next prayer time.
+        val ctx = LocalContext.current
+        TextButton(
+            onClick = {
+                NotificationHelper.showAzanAlarm(
+                    ctx,
+                    "আজান পরীক্ষা",
+                    "পরীক্ষামূলক আজান বাজছে",
+                    9999,
+                )
+            },
+            modifier = Modifier.padding(16.dp, 0.dp, 16.dp, 4.dp),
+        ) {
+            Text("আজান পরীক্ষা করুন", fontSize = 13.sp)
+        }
 
         // Mazhab selector (only Asr time differs between the two).
         Row(
