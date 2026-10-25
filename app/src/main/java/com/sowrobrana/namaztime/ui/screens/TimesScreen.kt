@@ -278,6 +278,12 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
             }
             Switch(checked = notifyEnabled, onCheckedChange = { vm.setNotify(it) })
         }
+        Text(
+            text = "চালু থাকলে প্রতিটি ওয়াক্তে আজান বাজবে আর লক স্ক্রিনে আজানের পর্দা আসবে।",
+            fontSize = 12.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(16.dp, 0.dp, 16.dp, 4.dp),
+        )
 
         // Mazhab selector (only Asr time differs between the two).
         Row(
