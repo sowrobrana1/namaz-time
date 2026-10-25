@@ -37,6 +37,7 @@ import androidx.navigation.compose.rememberNavController
 import com.sowrobrana.namaztime.alarms.PrayerAlarmScheduler
 import com.sowrobrana.namaztime.data.Prefs
 import com.sowrobrana.namaztime.prayer.BD_CITIES
+import com.sowrobrana.namaztime.prayer.PrayerTimes
 import com.sowrobrana.namaztime.ui.NamazViewModel
 import com.sowrobrana.namaztime.ui.screens.QiblaScreen
 import com.sowrobrana.namaztime.ui.screens.TasbihScreen
@@ -62,7 +63,9 @@ class MainActivity : ComponentActivity() {
         }
         if (prefs.notifyEnabled) {
             val city = BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
-            PrayerAlarmScheduler.scheduleAll(this, city)
+            PrayerAlarmScheduler.scheduleAll(
+                this, city, PrayerTimes.factorForMazhab(prefs.mazhab),
+            )
         }
         setContent {
             NamazTheme {
