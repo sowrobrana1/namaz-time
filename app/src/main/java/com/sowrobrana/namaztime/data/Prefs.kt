@@ -13,6 +13,11 @@ class Prefs(context: Context) {
         get() = sp.getInt("city_index", 0)
         set(value) = sp.edit().putInt("city_index", value).apply()
 
+    /** 0 = Hanafi (default), 1 = Shafi'i. Only affects Asr time. */
+    var mazhab: Int
+        get() = sp.getInt("mazhab", 0)
+        set(value) = sp.edit().putInt("mazhab", value).apply()
+
     var notifyEnabled: Boolean
         get() = sp.getBoolean("notify_enabled", true)
         set(value) = sp.edit().putBoolean("notify_enabled", value).apply()
