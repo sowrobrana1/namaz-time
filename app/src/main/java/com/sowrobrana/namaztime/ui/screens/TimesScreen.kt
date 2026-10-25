@@ -2,8 +2,12 @@ package com.sowrobrana.namaztime.ui.screens
 
 import android.Manifest
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.Refresh
@@ -47,6 +51,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -61,6 +66,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -413,6 +421,55 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
                         fontSize = 13.sp,
                     )
                     TextButton(onClick = onRequestExactAlarm) {
+                        Text("অনুমতি দিন")
+                    }
+                }
+            }
+        }
+
+        // Android 14+: full-screen intent needs its own permission, or the
+        // alarm screen can't pop over the lock screen at prayer time.
+        var canFullScreen by remember { mutableStateOf(true) }
+        val lifecycleOwner = LocalLifecycleOwner.current
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    canFullScreen = if (Build.VERSION.SDK_INT >= 34) {
+                        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                            .canUseFullScreenIntent()
+                    } else {
+                        true
+                    }
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+        if (notifyEnabled && !canFullScreen) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp, 12.dp, 16.dp, 0.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFDF0D5)),
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "অ্যালার্ম স্ক্রিনের অনুমতি দরকার",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                    )
+                    Text(
+                        text = "না দিলে ওয়াক্তের সময় আজানের স্ক্রিন উপরে আসবে না, শুধু নোটিফিকেশন আসবে।",
+                        fontSize = 13.sp,
+                    )
+                    TextButton(onClick = {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                                Uri.parse("package:${context.packageName}"),
+                            ),
+                        )
+                    }) {
                         Text("অনুমতি দিন")
                     }
                 }
