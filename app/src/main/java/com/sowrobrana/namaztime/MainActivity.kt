@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material3.Icon
@@ -43,6 +44,7 @@ import com.sowrobrana.namaztime.prayer.BD_CITIES
 import com.sowrobrana.namaztime.prayer.PrayerTimes
 import com.sowrobrana.namaztime.ui.NamazViewModel
 import com.sowrobrana.namaztime.ui.screens.CalendarScreen
+import com.sowrobrana.namaztime.ui.screens.OtherScreen
 import com.sowrobrana.namaztime.ui.screens.QiblaScreen
 import com.sowrobrana.namaztime.ui.screens.QuranScreen
 import com.sowrobrana.namaztime.ui.screens.ShikkhaScreen
@@ -99,6 +101,7 @@ private fun MainNav(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
         Tab("tasbih", "তাসবিহ") { Icon(Icons.Filled.RadioButtonChecked, contentDescription = null) },
         Tab("shikkha", "শিক্ষা") { Icon(Icons.Filled.MenuBook, contentDescription = null) },
         Tab("quran", "কুরআন") { Icon(Icons.Filled.Book, contentDescription = null) },
+        Tab("other", "অন্যান্য") { Icon(Icons.Filled.Person, contentDescription = null) },
     )
     Scaffold(
         bottomBar = {
@@ -137,6 +140,7 @@ private fun MainNav(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
             composable("tasbih") { TasbihScreen(vm) }
             composable("shikkha") { ShikkhaScreen() }
             composable("quran") { QuranScreen() }
+            composable("other") { OtherScreen() }
         }
     }
 }
