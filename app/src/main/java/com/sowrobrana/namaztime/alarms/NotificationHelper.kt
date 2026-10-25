@@ -19,11 +19,21 @@ object NotificationHelper {
      * sound itself, so the azan is heard even when the full-screen
      * activity does not launch (e.g. the screen is on and the system
      * shows only a heads-up notification). The activity cancels this
-     * notification on open and plays the azan itself instead. */
-    const val AZAN_CHANNEL_ID = "azan_alarm_channel"
+     * notification on open and plays the azan itself instead.
+     *
+     * NOTE (2026-10-25 Isha incident): the v1 channel was created by an
+     * earlier build WITHOUT the azan sound, and Android never applies
+     * sound changes to an existing channel — so upgraders kept the old
+     * silent/default sound and heard no azan. v2 is a NEW id, so every
+     * install gets the azan sound for sure; the old channel is deleted. */
+    const val AZAN_CHANNEL_ID = "azan_alarm_channel_v2"
+    private const val OLD_AZAN_CHANNEL_ID = "azan_alarm_channel"
 
     fun ensureAzanChannel(context: Context) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (manager.getNotificationChannel(OLD_AZAN_CHANNEL_ID) != null) {
+            manager.deleteNotificationChannel(OLD_AZAN_CHANNEL_ID)
+        }
         if (manager.getNotificationChannel(AZAN_CHANNEL_ID) == null) {
             val soundUri = Uri.parse(
                 "android.resource://${context.packageName}/raw/azan",
