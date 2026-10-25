@@ -86,6 +86,7 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
     val mazhab by vm.mazhab.collectAsState()
     val notifyEnabled by vm.notifyEnabled.collectAsState()
     val rows by vm.todayRows.collectAsState()
+    val tomorrowMaghrib by vm.tomorrowMaghrib.collectAsState()
     val hijri by vm.hijri.collectAsState()
     val now by vm.nowMinutes.collectAsState()
     val context = LocalContext.current
@@ -558,6 +559,94 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
                     isCurrent = row.name == currentName,
                     isNext = row.name == nextName,
                 )
+            }
+        }
+        // Forbidden windows + nafl times + next sehri/iftar (computed from today's times).
+        val fajrMin = rows.firstOrNull { it.name == "ফজর" }?.minutes
+        val sunriseMin = rows.firstOrNull { it.name == "সূর্যোদয়" }?.minutes
+        val dhuhrMin = rows.firstOrNull { it.name == "যোহর" }?.minutes
+        val maghribMin = rows.firstOrNull { it.name == "মাগরিব" }?.minutes
+        val ishaMin = rows.firstOrNull { it.name == "এশা" }?.minutes
+        val tomorrowFajrMin = rows.firstOrNull { it.name == "এশা" }?.windowEnd
+        if (fajrMin != null && sunriseMin != null && dhuhrMin != null &&
+            maghribMin != null && ishaMin != null && tomorrowFajrMin != null &&
+            tomorrowFajrMin > 0
+        ) {
+            val nightLen = (tomorrowFajrMin + 1440) - maghribMin
+            val lastThirdMin = ((tomorrowFajrMin - nightLen / 3) % 1440 + 1440) % 1440
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp, 8.dp, 16.dp, 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFDE8E8)),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "সালাতের নিষিদ্ধ সময়",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF9B1C1C),
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("সকাল: ${formatTimeBn(sunriseMin)} - ${formatTimeBn(sunriseMin + 15)}", fontSize = 14.sp)
+                    Text("দুপুর: ${formatTimeBn(dhuhrMin - 7)} - ${formatTimeBn(dhuhrMin)}", fontSize = 14.sp)
+                    Text("সন্ধ্যা: ${formatTimeBn(maghribMin - 14)} - ${formatTimeBn(maghribMin)}", fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "এই সময়গুলোতে সালাত আদায় নিষিদ্ধ (ব্যতিক্রম: সূর্যাস্তকালীন একই দিনের আসর সালাত)।",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                    )
+                }
+            }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp, 8.dp, 16.dp, 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "নফল সালাতের সময়",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2E7D32),
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("দুহা (চাশত): ${formatTimeBn(sunriseMin + 15)} - ${formatTimeBn(dhuhrMin - 7)}", fontSize = 14.sp)
+                    Text("জাওয়াল শুরু: ${formatTimeBn(dhuhrMin)}", fontSize = 14.sp)
+                    Text("আওয়াবিন: ${formatTimeBn(maghribMin)} - ${formatTimeBn(ishaMin)}", fontSize = 14.sp)
+                    Text("তাহাজ্জুদ: ${formatTimeBn(ishaMin)} - ${formatTimeBn(tomorrowFajrMin)}", fontSize = 14.sp)
+                    Text(
+                        text = "রাতের শেষ ১/৩ শুরু: ${formatTimeBn(lastThirdMin)} (তাহাজ্জুদের উত্তম সময়)",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            val nextIftarMin = if (now < maghribMin) maghribMin else tomorrowMaghrib
+            val sehriLeftMin = (tomorrowFajrMin + 1440) - now
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp, 8.dp, 16.dp, 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5E7C3)),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "পরবর্তী সাহরি ও ইফতার",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("পরবর্তী সাহরি: ${formatTimeBn(tomorrowFajrMin)}", fontSize = 14.sp)
+                    Text("পরবর্তী ইফতার: ${formatTimeBn(nextIftarMin)}", fontSize = 14.sp)
+                    Text(
+                        text = "সাহরির বাকি: ${sehriLeftMin / 60} ঘণ্টা ${sehriLeftMin % 60} মিনিট",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
