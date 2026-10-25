@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import com.sowrobrana.namaztime.prayer.BD_CITIES
 import com.sowrobrana.namaztime.prayer.City
 import com.sowrobrana.namaztime.prayer.PrayerTimes
@@ -61,7 +62,27 @@ object PrayerAlarmScheduler {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pi)
+        // Never crash over an alarm: on Android 12+ exact alarms need the
+        // SCHEDULE_EXACT_ALARM permission, which a fresh install does NOT
+        // have until the user allows it in Settings. Without the guard
+        // below, setExactAndAllowWhileIdle throws SecurityException on
+        // every launch (notify defaults to on) — the "app has a bug"
+        // crash loop. Fall back to an inexact alarm until granted.
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                !am.canScheduleExactAlarms()
+            ) {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pi)
+            } else {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pi)
+            }
+        } catch (_: SecurityException) {
+            try {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pi)
+            } catch (_: SecurityException) {
+                // Leave notifications off until the permission is granted.
+            }
+        }
     }
 
     fun cancelAll(context: Context) {
