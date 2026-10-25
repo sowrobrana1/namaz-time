@@ -1,8 +1,12 @@
 package com.sowrobrana.namaztime.ui.screens
 
+import android.Manifest
 import android.app.AlarmManager
 import android.content.Context
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -36,12 +40,14 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,6 +71,7 @@ import com.sowrobrana.namaztime.ui.NamazViewModel
 import com.sowrobrana.namaztime.ui.PrayerRow
 import com.sowrobrana.namaztime.util.BN_MONTHS
 import com.sowrobrana.namaztime.util.BN_WEEKDAYS
+import com.sowrobrana.namaztime.util.LocationHelper
 import com.sowrobrana.namaztime.util.bnDigits
 import com.sowrobrana.namaztime.util.bnNumber
 import com.sowrobrana.namaztime.util.formatTimeBn
@@ -72,14 +79,59 @@ import java.util.Calendar
 
 @Composable
 fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
-    val cityIndex by vm.cityIndex.collectAsState()
+
+    val locationMode by vm.locationMode.collectAsState()
+    val autoLabel by vm.autoLabel.collectAsState()
+    val city by vm.effectiveCity.collectAsState()
     val mazhab by vm.mazhab.collectAsState()
     val notifyEnabled by vm.notifyEnabled.collectAsState()
     val rows by vm.todayRows.collectAsState()
     val hijri by vm.hijri.collectAsState()
     val now by vm.nowMinutes.collectAsState()
     val context = LocalContext.current
-    val city = BD_CITIES.getOrElse(cityIndex) { BD_CITIES[0] }
+
+    // Auto-location: permission -> GPS fix -> times follow the new place.
+    var locStatus by remember { mutableStateOf("") } // "", "searching", "notfound"
+    var locDenied by remember { mutableStateOf(false) }
+    fun fetchAndApply(onDone: () -> Unit = {}) {
+        locStatus = "searching"
+        LocationHelper.fetchCurrent(
+            context,
+            onResult = { lat, lon ->
+                vm.setAutoLocation(lat, lon)
+                locStatus = ""
+                onDone()
+            },
+            onEmpty = { locStatus = "notfound" },
+        )
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            locDenied = false
+            fetchAndApply()
+        } else {
+            locDenied = true
+        }
+    }
+    fun startAuto() {
+        if (LocationHelper.hasPermission(context)) {
+            fetchAndApply()
+        } else {
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+    // Silent refresh when auto mode is on: moving to a new place updates the times.
+    LaunchedEffect(locationMode) {
+        if (locationMode == "auto" && LocationHelper.hasPermission(context)) {
+            LocationHelper.fetchCurrent(
+                context,
+                onResult = { lat, lon -> vm.setAutoLocation(lat, lon) },
+                onEmpty = {},
+            )
+        }
+    }
 
     val prayers = rows.filter { !it.isSunrise }
     val (nextName, nextMin, prevMin) = nextPrayerInfo(prayers, now)
@@ -189,6 +241,115 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
                     color = Color(0xFFD9EDE4),
                     fontSize = 12.sp,
                 )
+            }
+        }
+
+        // Location card (Muslims Day style): auto GPS vs manual district.
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = "লোকেশন",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = locationMode == "auto",
+                        onClick = {
+                            if (locationMode != "auto") {
+                                vm.setLocationMode("auto")
+                                startAuto()
+                            }
+                        },
+                        label = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("অটোমেটিক পদ্ধতি")
+                                Text(
+                                    text = "  নির্ভুল সময়",
+                                    fontSize = 10.sp,
+                                    color = Color(0xFFB8860B),
+                                )
+                            }
+                        },
+                    )
+                    FilterChip(
+                        selected = locationMode != "auto",
+                        onClick = { vm.setLocationMode("manual") },
+                        label = { Text("ম্যানুয়াল পদ্ধতি") },
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                if (locationMode == "auto") {
+                    if (!LocationHelper.hasPermission(context)) {
+                        Text(
+                            text = "লোকেশন পারমিশন দিলে, আপনার বর্তমান অবস্থান অনুযায়ী আরও নির্ভুল সময়সূচি দেখানো হবে।",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = { startAuto() }) {
+                            Text("লোকেশন পারমিশন দিন")
+                        }
+                        if (locDenied) {
+                            Text(
+                                text = "পারমিশন দেওয়া হয়নি — ফোনের সেটিংস থেকে লোকেশন চালু করে আবার চেষ্টা করুন, অথবা ম্যানুয়াল জেলা বেছে নিন।",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    } else if (locStatus == "searching") {
+                        Text(text = "বর্তমান অবস্থান খুঁজছি…", fontSize = 14.sp)
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "বর্তমান অবস্থান",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = autoLabel.ifEmpty { city.name },
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                            IconButton(onClick = { fetchAndApply() }) {
+                                Icon(
+                                    Icons.Filled.Refresh,
+                                    contentDescription = "লোকেশন আবার খুঁজুন",
+                                )
+                            }
+                        }
+                        if (locStatus == "notfound") {
+                            Text(
+                                text = "লোকেশন পাওয়া যায়নি — GPS চালু করে আবার চেষ্টা করুন, অথবা ম্যানুয়াল জেলা বেছে নিন।",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                        Text(
+                            text = "অটোমেটিক লোকেশনে ইসলামিক ফাউন্ডেশনের সময়ের সাথে ১-২ মিনিট পার্থক্য হতে পারে।",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "বর্তমান জেলা: ${city.name}",
+                            fontSize = 14.sp,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = { cityDialogOpen = true }) {
+                            Text("জেলা বেছে নিন")
+                        }
+                    }
+                }
             }
         }
 
