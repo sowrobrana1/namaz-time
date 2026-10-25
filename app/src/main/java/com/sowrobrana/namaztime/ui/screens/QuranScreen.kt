@@ -63,6 +63,7 @@ import kotlinx.coroutines.withContext
 private sealed interface Reader {
     data class Surah(val id: Int, val ayah: Int) : Reader
     data class Para(val num: Int) : Reader
+    data class Mushaf(val page: Int) : Reader
 }
 
 @Composable
@@ -111,6 +112,14 @@ fun QuranScreen() {
                 },
             )
         }
+        is Reader.Mushaf -> {
+            BackHandler { reader = null }
+            MushafReader(
+                startPage = r.page,
+                onBack = { reader = null },
+                onSave = { page -> prefs.lastMushafPage = page },
+            )
+        }
         null -> {
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(
@@ -150,6 +159,41 @@ fun QuranScreen() {
                                 )
                             }
                         }
+                    }
+                }
+                // Mushaf mode card: Arabic only, page by page (for
+                // readers who read Arabic and do khatam). The ayah
+                // reader (uchcharon + meaning) stays as the other mode.
+                val lastMushaf = prefs.lastMushafPage
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp, 4.dp, 16.dp, 8.dp)
+                        .clickable {
+                            reader = Reader.Mushaf(
+                                if (lastMushaf > 0) lastMushaf else 1,
+                            )
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1B5E20),
+                    ),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "মুসহাফ মোড — শুধু আরবি",
+                            color = Color(0xFFD4AF37),
+                            fontSize = 13.sp,
+                        )
+                        Text(
+                            text = if (lastMushaf > 1) {
+                                "পাতা ${bnNumber(lastMushaf)} থেকে চালিয়ে যান"
+                            } else {
+                                "পাতা ধরে ধরে পড়ুন (খতমের জন্য)"
+                            },
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
                 }
                 Row(
