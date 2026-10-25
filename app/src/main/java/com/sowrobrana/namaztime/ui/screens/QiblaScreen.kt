@@ -35,7 +35,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sowrobrana.namaztime.prayer.BD_CITIES
 import com.sowrobrana.namaztime.prayer.Qibla
 import com.sowrobrana.namaztime.ui.NamazViewModel
 import com.sowrobrana.namaztime.util.bnNumber
@@ -46,8 +45,7 @@ import kotlin.math.sin
 /** Live compass: the dial stays fixed to the world, the top arrow is the phone's facing. */
 @Composable
 fun QiblaScreen(vm: NamazViewModel) {
-    val cityIndex by vm.cityIndex.collectAsState()
-    val city = BD_CITIES.getOrElse(cityIndex) { BD_CITIES[0] }
+    val city by vm.effectiveCity.collectAsState()
     val qiblaDeg = Qibla.bearing(city.lat, city.lng)
     val context = LocalContext.current
 
