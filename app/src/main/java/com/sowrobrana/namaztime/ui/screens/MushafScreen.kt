@@ -146,6 +146,7 @@ private fun MushafPageView(page: MushafPage) {
         // Split the page into blocks: headers / bismillah lines break
         // the continuous ayah text into separate paragraphs.
         val ayahRun = StringBuilder()
+        @Composable
         fun flushAyahRun() {
             if (ayahRun.isNotEmpty()) {
                 Text(
