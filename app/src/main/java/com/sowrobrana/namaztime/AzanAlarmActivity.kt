@@ -2,8 +2,6 @@ package com.sowrobrana.namaztime
 
 import android.app.NotificationManager
 import android.content.Context
-import android.media.AudioAttributes
-import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -32,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sowrobrana.namaztime.alarms.AzanPlayer
 
 /**
  * Full-screen azan alarm screen.
@@ -42,7 +41,6 @@ import androidx.compose.ui.unit.sp
  */
 class AzanAlarmActivity : ComponentActivity() {
 
-    private var player: MediaPlayer? = null
     private var notifId: Int = -1
     private var dismissed = false
 
@@ -59,13 +57,13 @@ class AzanAlarmActivity : ComponentActivity() {
         val alarmSubtitle =
             intent.getStringExtra("alarm_subtitle") ?: "এখন $prayerName-এর ওয়াক্ত শুরু হয়েছে"
         notifId = intent.getIntExtra("notif_id", -1)
-        // If the notification sound already started playing the azan,
-        // stop it now — this activity plays the azan itself instead.
+        // Cancel first: this stops the notification-channel azan sound,
+        // then the shared player plays the azan itself — never both.
         if (notifId >= 0) {
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.cancel(notifId)
         }
-        startAzan()
+        AzanPlayer.start(this)
         setContent {
             MaterialTheme {
                 AzanAlarmScreen(
@@ -77,24 +75,6 @@ class AzanAlarmActivity : ComponentActivity() {
         }
     }
 
-    private fun startAzan() {
-        try {
-            player = MediaPlayer.create(this, R.raw.azan)?.apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build(),
-                )
-                // When the azan finishes, close the screen on its own.
-                setOnCompletionListener { dismiss() }
-                start()
-            }
-        } catch (_: Exception) {
-            // Silent failure: the notification still shows the prayer time.
-        }
-    }
-
     /** Power button (screen off) lands here too — stop the azan. */
     override fun onPause() {
         super.onPause()
@@ -102,24 +82,14 @@ class AzanAlarmActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        try {
-            player?.stop()
-            player?.release()
-        } catch (_: Exception) {
-        }
-        player = null
+        AzanPlayer.stop()
         super.onDestroy()
     }
 
     private fun dismiss() {
         if (dismissed) return
         dismissed = true
-        try {
-            player?.stop()
-            player?.release()
-        } catch (_: Exception) {
-        }
-        player = null
+        AzanPlayer.stop()
         if (notifId >= 0) {
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.cancel(notifId)
