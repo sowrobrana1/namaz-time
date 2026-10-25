@@ -46,11 +46,12 @@ object NotificationHelper {
      * plays the azan audio and stops on tap, swipe, or power button.
      * Tapping the notification itself also opens the activity.
      */
-    fun showAzanAlarm(context: Context, prayerName: String, id: Int) {
+    fun showAzanAlarm(context: Context, title: String, subtitle: String, id: Int) {
         ensureChannel(context)
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val intent = Intent(context, AzanAlarmActivity::class.java).apply {
-            putExtra("prayer_name", prayerName)
+            putExtra("alarm_title", title)
+            putExtra("alarm_subtitle", subtitle)
             putExtra("notif_id", id)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -62,8 +63,8 @@ object NotificationHelper {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("$prayerName-এর আজান")
-            .setContentText("এখন $prayerName-এর ওয়াক্ত — আজান বন্ধ করতে ট্যাপ করুন")
+            .setContentTitle(title)
+            .setContentText("$subtitle — বন্ধ করতে ট্যাপ করুন")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setFullScreenIntent(pending, true)
