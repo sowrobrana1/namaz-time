@@ -15,24 +15,25 @@ object PrayerAlarmScheduler {
 
     val PRAYER_NAMES = listOf("ফজর", "যোহর", "আসর", "মাগরিব", "এশা")
 
-    private fun timesFor(city: City, cal: Calendar): List<Int> {
+    private fun timesFor(city: City, cal: Calendar, asrFactor: Double): List<Int> {
         val t = PrayerTimes.compute(
             cal.get(Calendar.YEAR),
             cal.get(Calendar.MONTH) + 1,
             cal.get(Calendar.DAY_OF_MONTH),
             city.lat,
             city.lng,
+            asrFactor = asrFactor,
         )
         return listOf(t.fajr, t.dhuhr, t.asr, t.maghrib, t.isha)
     }
 
     /** Schedule today's remaining prayers + all of tomorrow's (so the chain never gaps). */
-    fun scheduleAll(context: Context, city: City) {
+    fun scheduleAll(context: Context, city: City, asrFactor: Double = 1.0) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val now = Calendar.getInstance()
-        val today = timesFor(city, now)
+        val today = timesFor(city, now, asrFactor)
         val tomorrowCal = (now.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) }
-        val tomorrow = timesFor(city, tomorrowCal)
+        val tomorrow = timesFor(city, tomorrowCal, asrFactor)
         for (i in 0 until 5) {
             scheduleOne(context, am, i, now, today[i])
             scheduleOne(context, am, 100 + i, tomorrowCal, tomorrow[i])
