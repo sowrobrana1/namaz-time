@@ -17,7 +17,7 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             try {
                 val index = intent.getIntExtra("prayer_index", -1)
                 if (index in 0 until 5) {
-                    NotificationHelper.showPrayerNotification(
+                    NotificationHelper.showAzanAlarm(
                         context,
                         PrayerAlarmScheduler.PRAYER_NAMES[index],
                         2000 + index,
