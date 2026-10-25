@@ -52,6 +52,14 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
     private val _tomorrowMaghrib = MutableStateFlow(0)
     val tomorrowMaghrib: StateFlow<Int> = _tomorrowMaghrib.asStateFlow()
 
+    /** Epoch seconds of tomorrow's Fajr (live sehri countdown target). */
+    private val _sehriTargetEpoch = MutableStateFlow(0L)
+    val sehriTargetEpoch: StateFlow<Long> = _sehriTargetEpoch.asStateFlow()
+
+    /** Epoch seconds, ticks every second (drives the live countdown). */
+    private val _nowEpoch = MutableStateFlow(System.currentTimeMillis() / 1000)
+    val nowEpoch: StateFlow<Long> = _nowEpoch.asStateFlow()
+
     private val _today = MutableStateFlow(todayRows())
     val todayRows: StateFlow<List<PrayerRow>> = _today.asStateFlow()
 
@@ -77,6 +85,7 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
             while (true) {
                 delay(1000)
                 _nowMinutes.value = nowMinutes()
+                _nowEpoch.value = System.currentTimeMillis() / 1000
                 val day = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
                 if (day != lastDay) {
                     lastDay = day
@@ -115,6 +124,13 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
             asrFactor = factor,
         )
         _tomorrowMaghrib.value = tmr.maghrib
+        val sehriCal = (tomorrowCal.clone() as Calendar).apply {
+            set(Calendar.HOUR_OF_DAY, tmr.fajr / 60)
+            set(Calendar.MINUTE, tmr.fajr % 60)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        _sehriTargetEpoch.value = sehriCal.timeInMillis / 1000
         return listOf(
             PrayerRow("ফজর", t.fajr, windowEnd = t.sunrise),
             PrayerRow("সূর্যোদয়", t.sunrise, isSunrise = true),
