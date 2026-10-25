@@ -34,7 +34,7 @@ data class Bismillah(
 )
 
 /**
- * Offline Quran data, loaded once from assets/quran/*.json.
+ * Offline Quran data, loaded once from the JSON files under assets/quran.
  *
  * Sources (credited on the Quran home screen): Uthmani Arabic text,
  * Bangla translation (Muhiuddin Khan), Bangla word meanings, and
