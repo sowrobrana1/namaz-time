@@ -61,6 +61,11 @@ class Prefs(context: Context) {
         get() = sp.getInt("last_quran_ayah", 1)
         set(value) = sp.edit().putInt("last_quran_ayah", value).apply()
 
+    /** Last Mushaf page for the Mushaf-mode resume card (0 = none). */
+    var lastMushafPage: Int
+        get() = sp.getInt("last_mushaf_page", 0)
+        set(value) = sp.edit().putInt("last_mushaf_page", value).apply()
+
     fun tasbihCount(dhikr: Int): Int = sp.getInt("tasbih_count_$dhikr", 0)
 
     /** The city prayer times/alarms must follow: GPS position in auto
