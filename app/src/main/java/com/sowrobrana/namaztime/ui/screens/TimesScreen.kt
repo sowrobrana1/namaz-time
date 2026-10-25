@@ -28,15 +28,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -68,6 +72,7 @@ import java.util.Calendar
 @Composable
 fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
     val cityIndex by vm.cityIndex.collectAsState()
+    val mazhab by vm.mazhab.collectAsState()
     val notifyEnabled by vm.notifyEnabled.collectAsState()
     val rows by vm.todayRows.collectAsState()
     val hijri by vm.hijri.collectAsState()
@@ -99,7 +104,8 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
         true
     }
 
-    var cityMenuOpen by remember { mutableStateOf(false) }
+    var cityDialogOpen by remember { mutableStateOf(false) }
+    var cityQuery by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -118,34 +124,18 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
                 .padding(20.dp),
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box {
-                    TextButton(onClick = { cityMenuOpen = true }) {
-                        Text(
-                            text = city.name,
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Icon(
-                            imageVector = Icons.Filled.ArrowDropDown,
-                            contentDescription = null,
-                            tint = Color.White,
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = cityMenuOpen,
-                        onDismissRequest = { cityMenuOpen = false },
-                    ) {
-                        BD_CITIES.forEachIndexed { i, c ->
-                            DropdownMenuItem(
-                                text = { Text(c.name) },
-                                onClick = {
-                                    vm.setCity(i)
-                                    cityMenuOpen = false
-                                },
-                            )
-                        }
-                    }
+                TextButton(onClick = { cityDialogOpen = true }) {
+                    Text(
+                        text = city.name,
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Icon(
+                        imageVector = Icons.Filled.ArrowDropDown,
+                        contentDescription = null,
+                        tint = Color.White,
+                    )
                 }
                 Text(text = gregorian, color = Color(0xFFD9EDE4), fontSize = 14.sp)
                 Text(text = hijriText, color = Color(0xFFE8B84B), fontSize = 14.sp)
@@ -201,6 +191,47 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
             }
         }
 
+        // District picker: searchable dialog (64 districts).
+        if (cityDialogOpen) {
+            AlertDialog(
+                onDismissRequest = { cityDialogOpen = false },
+                title = { Text("জেলা বেছে নিন") },
+                text = {
+                    Column {
+                        TextField(
+                            value = cityQuery,
+                            onValueChange = { cityQuery = it },
+                            label = { Text("খুঁজুন") },
+                            singleLine = true,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val filtered = BD_CITIES.filter {
+                            it.name.contains(cityQuery.trim())
+                        }
+                        LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
+                            items(filtered) { c ->
+                                TextButton(
+                                    onClick = {
+                                        vm.setCity(BD_CITIES.indexOf(c))
+                                        cityDialogOpen = false
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        Text(c.name)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { cityDialogOpen = false }) { Text("বাতিল") }
+                },
+            )
+        }
+
         if (notifyEnabled && !canScheduleExact) {
             Card(
                 modifier = Modifier
@@ -247,6 +278,39 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
             }
             Switch(checked = notifyEnabled, onCheckedChange = { vm.setNotify(it) })
         }
+
+        // Mazhab selector (only Asr time differs between the two).
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp, 4.dp, 16.dp, 0.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "মাজহাব",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = mazhab == 0,
+                    onClick = { vm.setMazhab(0) },
+                    label = { Text("হানাফি", fontSize = 13.sp) },
+                )
+                FilterChip(
+                    selected = mazhab == 1,
+                    onClick = { vm.setMazhab(1) },
+                    label = { Text("শাফেয়ি", fontSize = 13.sp) },
+                )
+            }
+        }
+        Text(
+            text = "শুধু আসরের সময় মাজহাব অনুযায়ী বদলায় (হানাফি আসর দেরিতে)।",
+            fontSize = 12.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(16.dp, 0.dp, 16.dp, 4.dp),
+        )
 
         // Prayer rows, staggered entrance.
         val currentName = prayers.lastOrNull { it.minutes <= now }?.name
@@ -295,22 +359,31 @@ private fun PrayerRowCard(row: PrayerRow, isCurrent: Boolean, isNext: Boolean) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (isCurrent) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .background(Color(0xFF0E7A5B), shape = RoundedCornerShape(5.dp)),
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isCurrent) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .background(Color(0xFF0E7A5B), shape = RoundedCornerShape(5.dp)),
+                        )
+                        Text(text = "  ", fontSize = 1.sp)
+                    }
+                    Text(
+                        text = row.name,
+                        fontSize = 17.sp,
+                        fontWeight = if (isCurrent || isNext) FontWeight.Bold else FontWeight.Medium,
                     )
-                    Text(text = "  ", fontSize = 1.sp)
+                    if (row.isSunrise) {
+                        Text(text = "  (নিষিদ্ধ সময় নয়)", fontSize = 11.sp, color = Color.Gray)
+                    }
                 }
-                Text(
-                    text = row.name,
-                    fontSize = 17.sp,
-                    fontWeight = if (isCurrent || isNext) FontWeight.Bold else FontWeight.Medium,
-                )
-                if (row.isSunrise) {
-                    Text(text = "  (নিষিদ্ধ সময় নয়)", fontSize = 11.sp, color = Color.Gray)
+                if (row.windowEnd >= 0) {
+                    Text(
+                        text = "ওয়াক্ত: ${formatTimeBn(row.minutes)} – ${formatTimeBn(row.windowEnd)}",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                    )
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
