@@ -44,9 +44,8 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                 // Re-chain: keep tomorrow's alarms scheduled after every fire.
                 val prefs = Prefs(context)
                 if (prefs.notifyEnabled) {
-                    val city = BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
                     PrayerAlarmScheduler.scheduleAll(
-                        context, city, PrayerTimes.factorForMazhab(prefs.mazhab),
+                        context, prefs.effectiveCity(), PrayerTimes.factorForMazhab(prefs.mazhab),
                     )
                 }
             } finally {
@@ -64,9 +63,8 @@ class BootReceiver : BroadcastReceiver() {
             try {
                 val prefs = Prefs(context)
                 if (prefs.notifyEnabled) {
-                    val city = BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
                     PrayerAlarmScheduler.scheduleAll(
-                        context, city, PrayerTimes.factorForMazhab(prefs.mazhab),
+                        context, prefs.effectiveCity(), PrayerTimes.factorForMazhab(prefs.mazhab),
                     )
                 }
             } finally {
