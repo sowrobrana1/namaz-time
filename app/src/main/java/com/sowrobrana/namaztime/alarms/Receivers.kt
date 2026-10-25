@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.sowrobrana.namaztime.data.Prefs
 import com.sowrobrana.namaztime.prayer.BD_CITIES
+import com.sowrobrana.namaztime.prayer.PrayerTimes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,7 +27,9 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                 val prefs = Prefs(context)
                 if (prefs.notifyEnabled) {
                     val city = BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
-                    PrayerAlarmScheduler.scheduleAll(context, city)
+                    PrayerAlarmScheduler.scheduleAll(
+                        context, city, PrayerTimes.factorForMazhab(prefs.mazhab),
+                    )
                 }
             } finally {
                 pending.finish()
@@ -44,7 +47,9 @@ class BootReceiver : BroadcastReceiver() {
                 val prefs = Prefs(context)
                 if (prefs.notifyEnabled) {
                     val city = BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
-                    PrayerAlarmScheduler.scheduleAll(context, city)
+                    PrayerAlarmScheduler.scheduleAll(
+                        context, city, PrayerTimes.factorForMazhab(prefs.mazhab),
+                    )
                 }
             } finally {
                 pending.finish()
