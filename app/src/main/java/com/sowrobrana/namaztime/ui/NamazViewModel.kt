@@ -151,17 +151,7 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** The coordinates times are computed from: GPS position in auto mode, else picked district. */
-    fun effectiveCity(): City {
-        if (prefs.locationMode == "auto") {
-            val lat = prefs.autoLat
-            val lon = prefs.autoLon
-            if (lat != null && lon != null) {
-                val label = prefs.autoLabel.ifEmpty { LocationHelper.nearestCity(lat, lon).name }
-                return City(label, lat, lon)
-            }
-        }
-        return BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
-    }
+    fun effectiveCity(): City = prefs.effectiveCity()
 
     /** Recompute rows + effective city + alarms after any location change. */
     private fun refreshAll() {
