@@ -625,7 +625,6 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
                 }
             }
             val nextIftarMin = if (now < maghribMin) maghribMin else tomorrowMaghrib
-            val sehriLeftMin = (tomorrowFajrMin + 1440) - now
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -641,11 +640,7 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text("পরবর্তী সাহরি: ${formatTimeBn(tomorrowFajrMin)}", fontSize = 14.sp)
                     Text("পরবর্তী ইফতার: ${formatTimeBn(nextIftarMin)}", fontSize = 14.sp)
-                    Text(
-                        text = "সাহরির বাকি: ${sehriLeftMin / 60} ঘণ্টা ${sehriLeftMin % 60} মিনিট",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    SehriCountdownText(vm)
                 }
             }
         }
@@ -742,4 +737,22 @@ private fun formatRemaining(minutes: Int): String {
     } else {
         "${bnNumber(m)} মিনিট বাকি"
     }
+}
+
+/** Live ticking countdown to the next sehri (tomorrow's Fajr). Only this text recomposes each second. */
+@Composable
+private fun SehriCountdownText(vm: NamazViewModel) {
+    val nowEpoch by vm.nowEpoch.collectAsState()
+    val target by vm.sehriTargetEpoch.collectAsState()
+    val left = (target - nowEpoch).coerceAtLeast(0)
+    val h = (left / 3600).toInt()
+    val m = ((left % 3600) / 60).toInt()
+    val s = (left % 60).toInt()
+    val two = { n: Int -> bnNumber(n).padStart(2, '০') }
+    Text(
+        text = "সাহরির বাকি: ${two(h)}:${two(m)}:${two(s)}",
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFF0B3D2E),
+    )
 }
