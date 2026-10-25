@@ -46,11 +46,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sowrobrana.namaztime.ui.shikkha.DUA_QUNOOT_ARABIC
 import com.sowrobrana.namaztime.ui.shikkha.DUA_QUNOOT_MEANING
+import com.sowrobrana.namaztime.ui.shikkha.DUA_QUNOOT_TRANSLITERATION
 import com.sowrobrana.namaztime.ui.shikkha.DuaItem
 import com.sowrobrana.namaztime.ui.shikkha.PrayerGuide
 import com.sowrobrana.namaztime.ui.shikkha.duaCategories
+import com.sowrobrana.namaztime.ui.shikkha.duaTransliterations
 import com.sowrobrana.namaztime.ui.shikkha.duas
 import com.sowrobrana.namaztime.ui.shikkha.prayerGuides
+import com.sowrobrana.namaztime.ui.shikkha.stepTransliterations
 
 private val DeepEmerald = Color(0xFF0B3D2E)
 private val Gold = Color(0xFFD4AF37)
@@ -204,6 +207,9 @@ private fun GuideDetailScreen(guide: PrayerGuide, onBack: () -> Unit) {
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
+                    stepTransliterations[step.title]?.let { translit ->
+                        TransliterationText(translit)
+                    }
                     step.meaning?.let { meaning ->
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -242,6 +248,11 @@ private fun GuideDetailScreen(guide: PrayerGuide, onBack: () -> Unit) {
                             lineHeight = 32.sp,
                             textAlign = TextAlign.End,
                             modifier = Modifier.fillMaxWidth(),
+                        )
+                        TransliterationText(
+                            DUA_QUNOOT_TRANSLITERATION,
+                            labelColor = Gold,
+                            textColor = Color.White,
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
@@ -327,6 +338,9 @@ private fun DuaCard(dua: DuaItem) {
                     textAlign = TextAlign.End,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                duaTransliterations[dua.title]?.let { translit ->
+                    TransliterationText(translit)
+                }
                 Spacer(Modifier.height(6.dp))
                 Text(
                     dua.meaning,
@@ -336,4 +350,27 @@ private fun DuaCard(dua: DuaItem) {
             }
         }
     }
+}
+
+/** আরবির নিচে বাংলা উচ্চারণ — যারা আরবি পড়তে পারেন না, তাদের জন্য। */
+@Composable
+private fun TransliterationText(
+    text: String,
+    labelColor: Color = MaterialTheme.colorScheme.primary,
+    textColor: Color = Color.Unspecified,
+) {
+    Spacer(Modifier.height(6.dp))
+    Text(
+        "বাংলা উচ্চারণ:",
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        color = labelColor,
+    )
+    Spacer(Modifier.height(2.dp))
+    Text(
+        text,
+        fontSize = 15.sp,
+        lineHeight = 24.sp,
+        color = textColor,
+    )
 }
