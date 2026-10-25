@@ -48,6 +48,10 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
     private val _notifyEnabled = MutableStateFlow(prefs.notifyEnabled)
     val notifyEnabled: StateFlow<Boolean> = _notifyEnabled.asStateFlow()
 
+    /** Tomorrow's Maghrib (for "next iftar" after today's Maghrib has passed). */
+    private val _tomorrowMaghrib = MutableStateFlow(0)
+    val tomorrowMaghrib: StateFlow<Int> = _tomorrowMaghrib.asStateFlow()
+
     private val _today = MutableStateFlow(todayRows())
     val todayRows: StateFlow<List<PrayerRow>> = _today.asStateFlow()
 
@@ -110,6 +114,7 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
             city.lng,
             asrFactor = factor,
         )
+        _tomorrowMaghrib.value = tmr.maghrib
         return listOf(
             PrayerRow("ফজর", t.fajr, windowEnd = t.sunrise),
             PrayerRow("সূর্যোদয়", t.sunrise, isSunrise = true),
