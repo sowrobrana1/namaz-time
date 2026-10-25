@@ -318,6 +318,49 @@ fun TimesScreen(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
             modifier = Modifier.padding(16.dp, 0.dp, 16.dp, 4.dp),
         )
 
+        // Ramadan card: sehri end (= Fajr) and iftar (= Maghrib) times.
+        // The Fajr azan alarm doubles as the sehri-end alarm and the
+        // Maghrib azan alarm doubles as the iftar alarm (see Receivers).
+        if (Hijri.fromGregorian(
+                java.util.Calendar.getInstance().get(java.util.Calendar.YEAR),
+                java.util.Calendar.getInstance().get(java.util.Calendar.MONTH) + 1,
+                java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH),
+            ).month == 9
+        ) {
+            val fajrMin = rows.firstOrNull { it.name == "ফজর" }?.minutes
+            val maghribMin = rows.firstOrNull { it.name == "মাগরিব" }?.minutes
+            if (fajrMin != null && maghribMin != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp, 8.dp, 16.dp, 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "রমজান",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2E7D32),
+                        )
+                        Text(
+                            text = "সেহরির শেষ সময়: ${formatTimeBn(fajrMin)}",
+                            fontSize = 15.sp,
+                        )
+                        Text(
+                            text = "ইফতার: ${formatTimeBn(maghribMin)}",
+                            fontSize = 15.sp,
+                        )
+                        Text(
+                            text = "ফজরের আজানই সেহরির শেষ সময়ের অ্যালার্ম, মাগরিবের আজানই ইফতারের অ্যালার্ম।",
+                            fontSize = 12.sp,
+                            color = Color.Gray,
+                        )
+                    }
+                }
+            }
+        }
+
         // Prayer rows, staggered entrance.
         val currentName = prayers.lastOrNull { it.minutes <= now }?.name
         rows.forEachIndexed { index, row ->
