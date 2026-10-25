@@ -13,6 +13,25 @@ class Prefs(context: Context) {
         get() = sp.getInt("city_index", 0)
         set(value) = sp.edit().putInt("city_index", value).apply()
 
+    /** "manual" = picked district, "auto" = GPS position (nearest district label). */
+    var locationMode: String
+        get() = sp.getString("location_mode", "manual") ?: "manual"
+        set(value) = sp.edit().putString("location_mode", value).apply()
+
+    /** Last GPS position used in auto mode; null when never located. */
+    var autoLat: Double?
+        get() = sp.getString("auto_lat", null)?.toDoubleOrNull()
+        set(value) = sp.edit().putString("auto_lat", value?.toString()).apply()
+
+    var autoLon: Double?
+        get() = sp.getString("auto_lon", null)?.toDoubleOrNull()
+        set(value) = sp.edit().putString("auto_lon", value?.toString()).apply()
+
+    /** Nearest-district label for the last GPS position. */
+    var autoLabel: String
+        get() = sp.getString("auto_label", "") ?: ""
+        set(value) = sp.edit().putString("auto_label", value).apply()
+
     /** 0 = Hanafi (default), 1 = Shafi'i. Only affects Asr time. */
     var mazhab: Int
         get() = sp.getInt("mazhab", 0)
