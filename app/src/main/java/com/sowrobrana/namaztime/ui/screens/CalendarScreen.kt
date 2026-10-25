@@ -70,6 +70,7 @@ fun CalendarScreen() {
             },
         )
     }
+    var showYearView by remember { mutableStateOf(false) }
 
     fun shiftMonth(delta: Int) {
         var y = viewYear
@@ -129,6 +130,20 @@ fun CalendarScreen() {
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
+        // Month / year view toggle — always visible.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            TextButton(onClick = { showYearView = !showYearView }) {
+                Text(
+                    text = if (showYearView) "মাসের ক্যালেন্ডার" else "সারা বছর দেখুন",
+                    fontSize = 13.sp,
+                )
+            }
+        }
+
+        if (!showYearView) {
         // Month navigation.
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -314,5 +329,104 @@ fun CalendarScreen() {
             fontSize = 12.sp,
             color = Color.Gray,
         )
+        } // end month view
+
+        if (showYearView) {
+            // Year navigation.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                IconButton(onClick = { viewYear -= 1 }) {
+                    Icon(Icons.Filled.ChevronLeft, contentDescription = "আগের বছর")
+                }
+                Text(
+                    text = bnNumber(viewYear),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                IconButton(onClick = { viewYear += 1 }) {
+                    Icon(Icons.Filled.ChevronRight, contentDescription = "পরের বছর")
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            // 12 month cards, 2 per row. Tap a card to open that month.
+            for (row in 0 until 6) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    for (col in 0 until 2) {
+                        val m = row * 2 + col + 1
+                        val daysInM = Calendar.getInstance().apply {
+                            set(viewYear, m - 1, 1)
+                        }.getActualMaximum(Calendar.DAY_OF_MONTH)
+                        val bF = BanglaDate.fromGregorian(viewYear, m, 1)
+                        val bL = BanglaDate.fromGregorian(viewYear, m, daysInM)
+                        val hF = Hijri.fromGregorian(viewYear, m, 1)
+                        val hL = Hijri.fromGregorian(viewYear, m, daysInM)
+                        val banglaSpan = if (bF.month == bL.month) {
+                            "${BanglaDate.MONTH_NAMES_BN[bF.month - 1]} ${bnNumber(bF.year)}"
+                        } else {
+                            "${BanglaDate.MONTH_NAMES_BN[bF.month - 1]}–" +
+                                "${BanglaDate.MONTH_NAMES_BN[bL.month - 1]} ${bnNumber(bL.year)}"
+                        }
+                        val hijriSpan = if (hF.month == hL.month) {
+                            "${Hijri.MONTH_NAMES_BN[hF.month - 1]} ${bnNumber(hF.year)}"
+                        } else {
+                            "${Hijri.MONTH_NAMES_BN[hF.month - 1]}–" +
+                                "${Hijri.MONTH_NAMES_BN[hL.month - 1]} ${bnNumber(hL.year)}"
+                        }
+                        var eventDays = 0
+                        for (d in 1..daysInM) {
+                            if (Holidays.eventsOn(viewYear, m, d).isNotEmpty()) eventDays++
+                        }
+                        Card(
+                            onClick = {
+                                viewMonth = m
+                                selectedDay =
+                                    if (viewYear == today.get(Calendar.YEAR) &&
+                                        m == today.get(Calendar.MONTH) + 1
+                                    ) {
+                                        today.get(Calendar.DAY_OF_MONTH)
+                                    } else {
+                                        1
+                                    }
+                                showYearView = false
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(4.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = BN_MONTHS[m - 1],
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(text = banglaSpan, fontSize = 12.sp, color = Color.Gray)
+                                Text(
+                                    text = hijriSpan,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF2E7D32),
+                                )
+                                if (eventDays > 0) {
+                                    Text(
+                                        text = "${bnNumber(eventDays)} দিনে ছুটি/দিবস",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFFC62828),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "কোনো মাসে চাপ দিলে সেই মাসের দিনের ক্যালেন্ডার খুলবে।",
+                fontSize = 12.sp,
+                color = Color.Gray,
+            )
+        }
     }
 }
