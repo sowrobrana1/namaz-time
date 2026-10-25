@@ -144,6 +144,38 @@ fun CalendarScreen() {
         }
 
         if (!showYearView) {
+        // Year selector on top: change year, or tap the year for the full-year view.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            IconButton(onClick = {
+                viewYear -= 1
+                val dim = Calendar.getInstance().apply {
+                    set(viewYear, viewMonth - 1, 1)
+                }.getActualMaximum(Calendar.DAY_OF_MONTH)
+                if (selectedDay > dim) selectedDay = dim
+            }) {
+                Icon(Icons.Filled.ChevronLeft, contentDescription = "আগের বছর")
+            }
+            TextButton(onClick = { showYearView = true }) {
+                Text(
+                    text = bnNumber(viewYear),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            IconButton(onClick = {
+                viewYear += 1
+                val dim = Calendar.getInstance().apply {
+                    set(viewYear, viewMonth - 1, 1)
+                }.getActualMaximum(Calendar.DAY_OF_MONTH)
+                if (selectedDay > dim) selectedDay = dim
+            }) {
+                Icon(Icons.Filled.ChevronRight, contentDescription = "পরের বছর")
+            }
+        }
         // Month navigation.
         Row(
             modifier = Modifier.fillMaxWidth(),
