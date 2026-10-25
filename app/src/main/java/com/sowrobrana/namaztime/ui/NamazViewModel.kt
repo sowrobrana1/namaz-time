@@ -15,7 +15,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
-data class PrayerRow(val name: String, val minutes: Int, val isSunrise: Boolean = false)
+data class PrayerRow(
+    val name: String,
+    val minutes: Int,
+    val isSunrise: Boolean = false,
+    /** End of this prayer's valid window in minutes, or -1 when it has none. */
+    val windowEnd: Int = -1,
+)
 
 class NamazViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -24,6 +30,9 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _cityIndex = MutableStateFlow(prefs.cityIndex)
     val cityIndex: StateFlow<Int> = _cityIndex.asStateFlow()
+
+    private val _mazhab = MutableStateFlow(prefs.mazhab)
+    val mazhab: StateFlow<Int> = _mazhab.asStateFlow()
 
     private val _notifyEnabled = MutableStateFlow(prefs.notifyEnabled)
     val notifyEnabled: StateFlow<Boolean> = _notifyEnabled.asStateFlow()
@@ -70,6 +79,7 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun todayRows(): List<PrayerRow> {
         val city = BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
+        val factor = PrayerTimes.factorForMazhab(prefs.mazhab)
         val cal = Calendar.getInstance()
         val t = PrayerTimes.compute(
             cal.get(Calendar.YEAR),
@@ -77,14 +87,25 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
             cal.get(Calendar.DAY_OF_MONTH),
             city.lat,
             city.lng,
+            asrFactor = factor,
+        )
+        // Isha's window runs until tomorrow's Fajr.
+        val tomorrowCal = (cal.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) }
+        val tmr = PrayerTimes.compute(
+            tomorrowCal.get(Calendar.YEAR),
+            tomorrowCal.get(Calendar.MONTH) + 1,
+            tomorrowCal.get(Calendar.DAY_OF_MONTH),
+            city.lat,
+            city.lng,
+            asrFactor = factor,
         )
         return listOf(
-            PrayerRow("ফজর", t.fajr),
+            PrayerRow("ফজর", t.fajr, windowEnd = t.sunrise),
             PrayerRow("সূর্যোদয়", t.sunrise, isSunrise = true),
-            PrayerRow("যোহর", t.dhuhr),
-            PrayerRow("আসর", t.asr),
-            PrayerRow("মাগরিব", t.maghrib),
-            PrayerRow("এশা", t.isha),
+            PrayerRow("যোহর", t.dhuhr, windowEnd = t.asr),
+            PrayerRow("আসর", t.asr, windowEnd = t.maghrib),
+            PrayerRow("মাগরিব", t.maghrib, windowEnd = t.isha),
+            PrayerRow("এশা", t.isha, windowEnd = tmr.fajr),
         )
     }
 
@@ -102,7 +123,21 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
         _cityIndex.value = index
         _today.value = todayRows()
         if (prefs.notifyEnabled) {
-            PrayerAlarmScheduler.scheduleAll(context, BD_CITIES[index])
+            PrayerAlarmScheduler.scheduleAll(
+                context, BD_CITIES[index], PrayerTimes.factorForMazhab(prefs.mazhab),
+            )
+        }
+    }
+
+    fun setMazhab(mazhab: Int) {
+        prefs.mazhab = mazhab
+        _mazhab.value = mazhab
+        _today.value = todayRows()
+        if (prefs.notifyEnabled) {
+            val city = BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
+            PrayerAlarmScheduler.scheduleAll(
+                context, city, PrayerTimes.factorForMazhab(mazhab),
+            )
         }
     }
 
@@ -111,7 +146,9 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
         _notifyEnabled.value = enabled
         val city = BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
         if (enabled) {
-            PrayerAlarmScheduler.scheduleAll(context, city)
+            PrayerAlarmScheduler.scheduleAll(
+                context, city, PrayerTimes.factorForMazhab(prefs.mazhab),
+            )
         } else {
             PrayerAlarmScheduler.cancelAll(context)
         }
@@ -130,6 +167,14 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
 
     fun tapTasbih() {
         val next = _tasbihCount.value + 1
+        prefs.setTasbihCount(_tasbihDhikr.value, next)
+        _tasbihCount.value = next
+    }
+
+    /** Add n counts at once (e.g. counted on fingers or a physical tasbih). */
+    fun addCounts(n: Int) {
+        if (n <= 0) return
+        val next = _tasbihCount.value + n
         prefs.setTasbihCount(_tasbihDhikr.value, next)
         _tasbihCount.value = next
     }
