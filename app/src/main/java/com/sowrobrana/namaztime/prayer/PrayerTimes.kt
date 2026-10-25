@@ -15,10 +15,14 @@ import kotlin.math.tan
  * Offline prayer-time calculation (standard solar-astronomy method).
  * Angles: Fajr 18°, Isha 18° (matches published Bangladesh timetables
  * within ~1 minute — verified against Dhaka 2026-10-25: 04:44 / 06:00 /
- * 11:43 / 14:59 / 17:25 / 18:41). Asr uses the Shafi'i shadow factor (1).
- * Bangladesh has no daylight saving; tz is fixed at UTC+6.
+ * 11:43 / 14:59 / 17:25 / 18:41). Asr shadow factor is selectable:
+ * Hanafi = 2, Shafi'i = 1. Bangladesh has no daylight saving;
+ * tz is fixed at UTC+6.
  */
 object PrayerTimes {
+
+    /** Mazhab setting value (stored in Prefs): 0 = Hanafi, 1 = Shafi'i. */
+    fun factorForMazhab(mazhab: Int): Double = if (mazhab == 1) 1.0 else 2.0
 
     /** All values are minutes from midnight, local time. */
     data class DayTimes(
@@ -86,6 +90,7 @@ object PrayerTimes {
         lat: Double,
         lng: Double,
         tzHours: Double = 6.0,
+        asrFactor: Double = 1.0,
     ): DayTimes {
         val jd = julianDay(year, month, day) - lng / 360.0
         val (decl, eq) = sunPosition(jd)
@@ -105,7 +110,7 @@ object PrayerTimes {
         val sunrise = toMin(adj(angleTime(-0.833, lat, decl, noon, true)))
         val dhuhr = toMin(adj(noon))
         val asrAlt = Math.toDegrees(
-            atan(1.0 / (1.0 + tan(abs(Math.toRadians(lat) - Math.toRadians(decl))))),
+            atan(1.0 / (asrFactor + tan(abs(Math.toRadians(lat) - Math.toRadians(decl))))),
         )
         val asr = toMin(adj(angleTime(asrAlt, lat, decl, noon, false)))
         val maghrib = toMin(adj(angleTime(-0.833, lat, decl, noon, false)))
