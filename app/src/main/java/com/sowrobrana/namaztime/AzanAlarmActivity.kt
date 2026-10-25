@@ -55,12 +55,16 @@ class AzanAlarmActivity : ComponentActivity() {
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
         )
         val prayerName = intent.getStringExtra("prayer_name") ?: "নামাজ"
+        val alarmTitle = intent.getStringExtra("alarm_title") ?: "$prayerName-এর আজান"
+        val alarmSubtitle =
+            intent.getStringExtra("alarm_subtitle") ?: "এখন $prayerName-এর ওয়াক্ত শুরু হয়েছে"
         notifId = intent.getIntExtra("notif_id", -1)
         startAzan()
         setContent {
             MaterialTheme {
                 AzanAlarmScreen(
-                    prayerName = prayerName,
+                    title = alarmTitle,
+                    subtitle = alarmSubtitle,
                     onDismiss = { dismiss() },
                 )
             }
@@ -119,7 +123,7 @@ class AzanAlarmActivity : ComponentActivity() {
 }
 
 @Composable
-private fun AzanAlarmScreen(prayerName: String, onDismiss: () -> Unit) {
+private fun AzanAlarmScreen(title: String, subtitle: String, onDismiss: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -148,7 +152,7 @@ private fun AzanAlarmScreen(prayerName: String, onDismiss: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "$prayerName-এর আজান",
+                text = title,
                 fontSize = 34.sp,
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
@@ -156,7 +160,7 @@ private fun AzanAlarmScreen(prayerName: String, onDismiss: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "এখন $prayerName-এর ওয়াক্ত শুরু হয়েছে",
+                text = subtitle,
                 fontSize = 16.sp,
                 color = Color(0xFFB0B0B0),
                 textAlign = TextAlign.Center,
