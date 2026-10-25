@@ -18,16 +18,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -72,6 +80,8 @@ fun TasbihScreen(vm: NamazViewModel) {
         animationSpec = spring(dampingRatio = 0.5f, stiffness = 400f),
         label = "tasbihPress",
     )
+    var showAddDialog by remember { mutableStateOf(false) }
+    var addText by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -112,63 +122,88 @@ fun TasbihScreen(vm: NamazViewModel) {
             }
         }
         Spacer(modifier = Modifier.height(28.dp))
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(260.dp),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val stroke = 14.dp.toPx()
-                drawArc(
-                    color = Color(0xFFD9EDE4),
-                    startAngle = -90f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    style = Stroke(width = stroke, cap = StrokeCap.Round),
-                )
-                drawArc(
-                    color = Color(0xFFE8B84B),
-                    startAngle = -90f,
-                    sweepAngle = 360f * animatedProgress,
-                    useCenter = false,
-                    style = Stroke(width = stroke, cap = StrokeCap.Round),
-                )
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(260.dp),
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val stroke = 14.dp.toPx()
+                    drawArc(
+                        color = Color(0xFFD9EDE4),
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        style = Stroke(width = stroke, cap = StrokeCap.Round),
+                    )
+                    drawArc(
+                        color = Color(0xFFE8B84B),
+                        startAngle = -90f,
+                        sweepAngle = 360f * animatedProgress,
+                        useCenter = false,
+                        style = Stroke(width = stroke, cap = StrokeCap.Round),
+                    )
+                }
+                Button(
+                    onClick = {
+                        vm.tapTasbih()
+                        val next = count + 1
+                        if (target > 0 && next % target == 0) {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        } else {
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                    },
+                    interactionSource = interaction,
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B3D2E)),
+                    modifier = Modifier
+                        .size(200.dp)
+                        .scale(scale),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = DHIKRS[dhikrIndex],
+                            color = Color(0xFFE8B84B),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        Text(
+                            text = bnNumber(count),
+                            color = Color.White,
+                            fontSize = 52.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "ট্যাপ করুন",
+                            color = Color(0xFFD9EDE4),
+                            fontSize = 13.sp,
+                        )
+                    }
+                }
             }
+            Spacer(modifier = Modifier.width(12.dp))
+            // Side "+" button: add counts manually (e.g. counted on fingers
+            // or with a physical tasbih) without tapping the big button.
             Button(
                 onClick = {
                     vm.tapTasbih()
-                    val next = count + 1
-                    if (target > 0 && next % target == 0) {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    } else {
-                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    }
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 },
-                interactionSource = interaction,
                 shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B3D2E)),
-                modifier = Modifier
-                    .size(200.dp)
-                    .scale(scale),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE8B84B)),
+                modifier = Modifier.size(56.dp),
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = DHIKRS[dhikrIndex],
-                        color = Color(0xFFE8B84B),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Text(
-                        text = bnNumber(count),
-                        color = Color.White,
-                        fontSize = 52.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = "ট্যাপ করুন",
-                        color = Color(0xFFD9EDE4),
-                        fontSize = 13.sp,
-                    )
-                }
+                Text(
+                    text = "+",
+                    color = Color(0xFF0B3D2E),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
         Spacer(modifier = Modifier.height(20.dp))
@@ -177,9 +212,40 @@ fun TasbihScreen(vm: NamazViewModel) {
             fontSize = 15.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        TextButton(onClick = { showAddDialog = true }) {
+            Text("সংখ্যা লিখে যোগ করুন")
+        }
+        Spacer(modifier = Modifier.height(4.dp))
         OutlinedButton(onClick = { vm.resetTasbih() }) {
             Text("আবার শুরু করুন")
+        }
+        if (showAddDialog) {
+            AlertDialog(
+                onDismissRequest = { showAddDialog = false },
+                title = { Text("কত যোগ করবেন?") },
+                text = {
+                    TextField(
+                        value = addText,
+                        onValueChange = { addText = it.filter { c -> c.isDigit() } },
+                        label = { Text("সংখ্যা") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val n = addText.toIntOrNull() ?: 0
+                            if (n > 0) vm.addCounts(n)
+                            addText = ""
+                            showAddDialog = false
+                        },
+                    ) { Text("যোগ করুন") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAddDialog = false }) { Text("বাতিল") }
+                },
+            )
         }
     }
 }
