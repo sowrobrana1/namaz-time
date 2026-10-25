@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.sowrobrana.namaztime.alarms.PrayerAlarmScheduler
 import com.sowrobrana.namaztime.data.Prefs
 import com.sowrobrana.namaztime.prayer.BD_CITIES
+import com.sowrobrana.namaztime.prayer.City
 import com.sowrobrana.namaztime.prayer.Hijri
 import com.sowrobrana.namaztime.prayer.PrayerTimes
+import com.sowrobrana.namaztime.util.LocationHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +32,15 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _cityIndex = MutableStateFlow(prefs.cityIndex)
     val cityIndex: StateFlow<Int> = _cityIndex.asStateFlow()
+
+    private val _locationMode = MutableStateFlow(prefs.locationMode)
+    val locationMode: StateFlow<String> = _locationMode.asStateFlow()
+
+    private val _autoLabel = MutableStateFlow(prefs.autoLabel)
+    val autoLabel: StateFlow<String> = _autoLabel.asStateFlow()
+
+    private val _effectiveCity = MutableStateFlow(effectiveCity())
+    val effectiveCity: StateFlow<City> = _effectiveCity.asStateFlow()
 
     private val _mazhab = MutableStateFlow(prefs.mazhab)
     val mazhab: StateFlow<Int> = _mazhab.asStateFlow()
@@ -78,7 +89,7 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun todayRows(): List<PrayerRow> {
-        val city = BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
+        val city = effectiveCity()
         val factor = PrayerTimes.factorForMazhab(prefs.mazhab)
         val cal = Calendar.getInstance()
         val t = PrayerTimes.compute(
@@ -118,15 +129,55 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    fun setCity(index: Int) {
-        prefs.cityIndex = index
-        _cityIndex.value = index
+    /** The coordinates times are computed from: GPS position in auto mode, else picked district. */
+    fun effectiveCity(): City {
+        if (prefs.locationMode == "auto") {
+            val lat = prefs.autoLat
+            val lon = prefs.autoLon
+            if (lat != null && lon != null) {
+                val label = prefs.autoLabel.ifEmpty { LocationHelper.nearestCity(lat, lon).name }
+                return City(label, lat, lon)
+            }
+        }
+        return BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
+    }
+
+    /** Recompute rows + effective city + alarms after any location change. */
+    private fun refreshAll() {
+        _effectiveCity.value = effectiveCity()
         _today.value = todayRows()
         if (prefs.notifyEnabled) {
             PrayerAlarmScheduler.scheduleAll(
-                context, BD_CITIES[index], PrayerTimes.factorForMazhab(prefs.mazhab),
+                context, effectiveCity(), PrayerTimes.factorForMazhab(prefs.mazhab),
             )
         }
+    }
+
+    fun setCity(index: Int) {
+        prefs.cityIndex = index
+        prefs.locationMode = "manual"
+        _cityIndex.value = index
+        _locationMode.value = "manual"
+        refreshAll()
+    }
+
+    /** Switch between "auto" (GPS) and "manual" (picked district). */
+    fun setLocationMode(mode: String) {
+        prefs.locationMode = mode
+        _locationMode.value = mode
+        refreshAll()
+    }
+
+    /** Called with a fresh GPS fix: saves it, labels it with the nearest district, follows it. */
+    fun setAutoLocation(lat: Double, lon: Double) {
+        val nearest = LocationHelper.nearestCity(lat, lon)
+        prefs.autoLat = lat
+        prefs.autoLon = lon
+        prefs.autoLabel = nearest.name
+        prefs.locationMode = "auto"
+        _autoLabel.value = nearest.name
+        _locationMode.value = "auto"
+        refreshAll()
     }
 
     fun setMazhab(mazhab: Int) {
@@ -134,9 +185,8 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
         _mazhab.value = mazhab
         _today.value = todayRows()
         if (prefs.notifyEnabled) {
-            val city = BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
             PrayerAlarmScheduler.scheduleAll(
-                context, city, PrayerTimes.factorForMazhab(mazhab),
+                context, effectiveCity(), PrayerTimes.factorForMazhab(mazhab),
             )
         }
     }
@@ -144,10 +194,9 @@ class NamazViewModel(app: Application) : AndroidViewModel(app) {
     fun setNotify(enabled: Boolean) {
         prefs.notifyEnabled = enabled
         _notifyEnabled.value = enabled
-        val city = BD_CITIES.getOrElse(prefs.cityIndex) { BD_CITIES[0] }
         if (enabled) {
             PrayerAlarmScheduler.scheduleAll(
-                context, city, PrayerTimes.factorForMazhab(prefs.mazhab),
+                context, effectiveCity(), PrayerTimes.factorForMazhab(prefs.mazhab),
             )
         } else {
             PrayerAlarmScheduler.cancelAll(context)
