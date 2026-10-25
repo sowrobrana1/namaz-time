@@ -2,6 +2,9 @@ package com.sowrobrana.namaztime.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.sowrobrana.namaztime.prayer.BD_CITIES
+import com.sowrobrana.namaztime.prayer.City
+import com.sowrobrana.namaztime.util.LocationHelper
 
 /** Tiny key-value store: city, notification toggle, tasbih counters. */
 class Prefs(context: Context) {
@@ -50,6 +53,22 @@ class Prefs(context: Context) {
         set(value) = sp.edit().putInt("tasbih_target", value).apply()
 
     fun tasbihCount(dhikr: Int): Int = sp.getInt("tasbih_count_$dhikr", 0)
+
+    /** The city prayer times/alarms must follow: GPS position in auto
+     * mode (nearest district label), otherwise the picked district.
+     * Used by the ViewModel AND by the alarm receivers, so scheduled
+     * alarms never drift back to the manual district in auto mode. */
+    fun effectiveCity(): City {
+        if (locationMode == "auto") {
+            val lat = autoLat
+            val lon = autoLon
+            if (lat != null && lon != null) {
+                val nearest = LocationHelper.nearestCity(lat, lon)
+                return City(autoLabel.ifEmpty { nearest.name }, lat, lon)
+            }
+        }
+        return BD_CITIES.getOrElse(cityIndex) { BD_CITIES[0] }
+    }
 
     fun setTasbihCount(dhikr: Int, count: Int) {
         sp.edit().putInt("tasbih_count_$dhikr", count).apply()
