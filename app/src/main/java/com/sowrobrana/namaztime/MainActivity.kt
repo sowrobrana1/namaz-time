@@ -17,6 +17,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material3.Icon
@@ -39,6 +40,7 @@ import com.sowrobrana.namaztime.data.Prefs
 import com.sowrobrana.namaztime.prayer.BD_CITIES
 import com.sowrobrana.namaztime.prayer.PrayerTimes
 import com.sowrobrana.namaztime.ui.NamazViewModel
+import com.sowrobrana.namaztime.ui.screens.CalendarScreen
 import com.sowrobrana.namaztime.ui.screens.QiblaScreen
 import com.sowrobrana.namaztime.ui.screens.TasbihScreen
 import com.sowrobrana.namaztime.ui.screens.TimesScreen
@@ -88,6 +90,7 @@ private fun MainNav(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
     val nav = rememberNavController()
     val tabs = listOf(
         Tab("somoy", "সময়") { Icon(Icons.Filled.AccessTime, contentDescription = null) },
+        Tab("calendar", "ক্যালেন্ডার") { Icon(Icons.Filled.DateRange, contentDescription = null) },
         Tab("qibla", "কিবলা") { Icon(Icons.Filled.Explore, contentDescription = null) },
         Tab("tasbih", "তাসবিহ") { Icon(Icons.Filled.RadioButtonChecked, contentDescription = null) },
     )
@@ -123,6 +126,7 @@ private fun MainNav(vm: NamazViewModel, onRequestExactAlarm: () -> Unit) {
             popExitTransition = { slideOutHorizontally(targetOffsetX = { it / 3 }) + fadeOut() },
         ) {
             composable("somoy") { TimesScreen(vm, onRequestExactAlarm) }
+            composable("calendar") { CalendarScreen() }
             composable("qibla") { QiblaScreen(vm) }
             composable("tasbih") { TasbihScreen(vm) }
         }
