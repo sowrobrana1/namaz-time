@@ -59,6 +59,12 @@ class AzanAlarmActivity : ComponentActivity() {
         val alarmSubtitle =
             intent.getStringExtra("alarm_subtitle") ?: "এখন $prayerName-এর ওয়াক্ত শুরু হয়েছে"
         notifId = intent.getIntExtra("notif_id", -1)
+        // If the notification sound already started playing the azan,
+        // stop it now — this activity plays the azan itself instead.
+        if (notifId >= 0) {
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.cancel(notifId)
+        }
         startAzan()
         setContent {
             MaterialTheme {
