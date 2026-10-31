@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.sowrobrana.namaztime"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.sowrobrana.namaztime"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 16
         versionName = "0.1.15"
 
